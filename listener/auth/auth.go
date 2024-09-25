@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"github.com/Dreamacro/clash/component/auth"
+	"github.com/metacubex/mihomo/component/auth"
 )
 
 var authenticator auth.Authenticator
@@ -13,3 +13,5 @@ func Authenticator() auth.Authenticator {
 func SetAuthenticator(au auth.Authenticator) {
 	authenticator = au
 }
+
+func Nil() auth.Authenticator { return nil }

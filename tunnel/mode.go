@@ -12,14 +12,12 @@ type TunnelMode int
 var ModeMapping = map[string]TunnelMode{
 	Global.String(): Global,
 	Rule.String():   Rule,
-	Script.String(): Script,
 	Direct.String(): Direct,
 }
 
 const (
 	Global TunnelMode = iota
 	Rule
-	Script
 	Direct
 )
 
@@ -36,7 +34,7 @@ func (m *TunnelMode) UnmarshalJSON(data []byte) error {
 }
 
 // UnmarshalYAML unserialize Mode with yaml
-func (m *TunnelMode) UnmarshalYAML(unmarshal func(interface{}) error) error {
+func (m *TunnelMode) UnmarshalYAML(unmarshal func(any) error) error {
 	var tp string
 	unmarshal(&tp)
 	mode, exist := ModeMapping[strings.ToLower(tp)]
@@ -53,7 +51,7 @@ func (m TunnelMode) MarshalJSON() ([]byte, error) {
 }
 
 // MarshalYAML serialize TunnelMode with yaml
-func (m TunnelMode) MarshalYAML() (interface{}, error) {
+func (m TunnelMode) MarshalYAML() (any, error) {
 	return m.String(), nil
 }
 
@@ -63,8 +61,6 @@ func (m TunnelMode) String() string {
 		return "global"
 	case Rule:
 		return "rule"
-	case Script:
-		return "script"
 	case Direct:
 		return "direct"
 	default:

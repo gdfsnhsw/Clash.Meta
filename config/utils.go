@@ -2,10 +2,12 @@ package config
 
 import (
 	"fmt"
+	"net"
+	"net/netip"
 	"strings"
 
-	"github.com/Dreamacro/clash/adapter/outboundgroup"
-	"github.com/Dreamacro/clash/common/structure"
+	"github.com/metacubex/mihomo/adapter/outboundgroup"
+	"github.com/metacubex/mihomo/common/structure"
 )
 
 func trimArr(arr []string) (r []string) {
@@ -18,13 +20,13 @@ func trimArr(arr []string) (r []string) {
 // Check if ProxyGroups form DAG(Directed Acyclic Graph), and sort all ProxyGroups by dependency order.
 // Meanwhile, record the original index in the config file.
 // If loop is detected, return an error with location of loop.
-func proxyGroupsDagSort(groupsConfig []map[string]interface{}) error {
+func proxyGroupsDagSort(groupsConfig []map[string]any) error {
 	type graphNode struct {
 		indegree int
 		// topological order
 		topo int
 		// the original data in `groupsConfig`
-		data map[string]interface{}
+		data map[string]any
 		// `outdegree` and `from` are used in loop locating
 		outdegree int
 		option    *outboundgroup.GroupCommonOption
@@ -145,4 +147,17 @@ func proxyGroupsDagSort(groupsConfig []map[string]interface{}) error {
 		delete(graph, name)
 	}
 	return fmt.Errorf("loop is detected in ProxyGroup, please check following ProxyGroups: %v", loopElements)
+}
+
+func verifyIP6() bool {
+	if iAddrs, err := net.InterfaceAddrs(); err == nil {
+		for _, addr := range iAddrs {
+			if prefix, err := netip.ParsePrefix(addr.String()); err == nil {
+				if addr := prefix.Addr().Unmap(); addr.Is6() && addr.IsGlobalUnicast() {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }

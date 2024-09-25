@@ -1,7 +1,7 @@
 package strmatcher
 
 import (
-	"container/list"
+	list "github.com/bahlo/generic-list-go"
 )
 
 const validCharCount = 53
@@ -39,7 +39,7 @@ func newNode() [validCharCount]Edge {
 	return s
 }
 
-var char2Index = []int{
+var char2Index = [...]int{
 	'A':  0,
 	'a':  0,
 	'B':  1,
@@ -190,7 +190,7 @@ func (ac *ACAutomaton) Add(domain string, t Type) {
 }
 
 func (ac *ACAutomaton) Build() {
-	queue := list.New()
+	queue := list.New[Edge]()
 	for i := 0; i < validCharCount; i++ {
 		if ac.trie[0][i].nextNode != 0 {
 			queue.PushBack(ac.trie[0][i])
@@ -201,7 +201,7 @@ func (ac *ACAutomaton) Build() {
 		if front == nil {
 			break
 		} else {
-			node := front.Value.(Edge).nextNode
+			node := front.Value.nextNode
 			queue.Remove(front)
 			for i := 0; i < validCharCount; i++ {
 				if ac.trie[node][i].nextNode != 0 {

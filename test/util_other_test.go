@@ -1,13 +1,12 @@
 //go:build !darwin
-// +build !darwin
 
 package main
 
 import (
 	"errors"
-	"net"
+	"net/netip"
 )
 
-func defaultRouteIP() (net.IP, error) {
-	return nil, errors.New("not supported")
+func defaultRouteIP() (netip.Addr, error) {
+	return netip.Addr{}, errors.New("not supported")
 }

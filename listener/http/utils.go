@@ -5,8 +5,16 @@ import (
 	"errors"
 	"net"
 	"net/http"
+	"net/netip"
 	"strings"
 )
+
+// removeHopByHopHeaders remove Proxy-* headers
+func removeProxyHeaders(header http.Header) {
+	header.Del("Proxy-Connection")
+	header.Del("Proxy-Authenticate")
+	header.Del("Proxy-Authorization")
+}
 
 // removeHopByHopHeaders remove hop-by-hop header
 func removeHopByHopHeaders(header http.Header) {
@@ -14,9 +22,8 @@ func removeHopByHopHeaders(header http.Header) {
 	// http://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html#sec13.5.1
 	// https://www.mnot.net/blog/2011/07/11/what_proxies_must_do
 
-	header.Del("Proxy-Connection")
-	header.Del("Proxy-Authenticate")
-	header.Del("Proxy-Authorization")
+	removeProxyHeaders(header)
+
 	header.Del("TE")
 	header.Del("Trailers")
 	header.Del("Transfer-Encoding")
@@ -40,8 +47,13 @@ func removeExtraHTTPHostPort(req *http.Request) {
 		host = req.URL.Host
 	}
 
-	if pHost, port, err := net.SplitHostPort(host); err == nil && port == "80" {
+	if pHost, port, err := net.SplitHostPort(host); err == nil && (port == "80" || port == "443") {
 		host = pHost
+		if ip, err := netip.ParseAddr(pHost); err == nil && ip.Is6() {
+			// RFC 2617 Sec 3.2.2, for IPv6 literal
+			// addresses the Host header needs to follow the RFC 2732 grammar for "host"
+			host = "[" + host + "]"
+		}
 	}
 
 	req.Host = host
@@ -65,10 +77,10 @@ func decodeBasicProxyAuthorization(credential string) (string, string, error) {
 		return "", "", err
 	}
 
-	login := strings.Split(string(plain), ":")
-	if len(login) != 2 {
+	user, pass, found := strings.Cut(string(plain), ":")
+	if !found {
 		return "", "", errors.New("invalid login")
 	}
 
-	return login[0], login[1], nil
+	return user, pass, nil
 }

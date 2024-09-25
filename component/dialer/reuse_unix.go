@@ -1,9 +1,9 @@
 //go:build darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris
-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
 
 package dialer
 
 import (
+	"context"
 	"net"
 	"syscall"
 
@@ -11,18 +11,10 @@ import (
 )
 
 func addrReuseToListenConfig(lc *net.ListenConfig) {
-	chain := lc.Control
-
-	lc.Control = func(network, address string, c syscall.RawConn) (err error) {
-		defer func() {
-			if err == nil && chain != nil {
-				err = chain(network, address, c)
-			}
-		}()
-
+	addControlToListenConfig(lc, func(ctx context.Context, network, address string, c syscall.RawConn) error {
 		return c.Control(func(fd uintptr) {
 			unix.SetsockoptInt(int(fd), unix.SOL_SOCKET, unix.SO_REUSEADDR, 1)
 			unix.SetsockoptInt(int(fd), unix.SOL_SOCKET, unix.SO_REUSEPORT, 1)
 		})
-	}
+	})
 }

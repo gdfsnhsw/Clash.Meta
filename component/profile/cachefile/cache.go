@@ -5,11 +5,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Dreamacro/clash/component/profile"
-	C "github.com/Dreamacro/clash/constant"
-	"github.com/Dreamacro/clash/log"
+	"github.com/metacubex/mihomo/component/profile"
+	C "github.com/metacubex/mihomo/constant"
+	"github.com/metacubex/mihomo/log"
 
-	"go.etcd.io/bbolt"
+	"github.com/metacubex/bbolt"
 )
 
 var (
@@ -130,6 +130,17 @@ func (c *CacheFile) GetFakeip(key []byte) []byte {
 	}
 
 	return bucket.Get(key)
+}
+
+func (c *CacheFile) FlushFakeIP() error {
+	err := c.DB.Batch(func(t *bbolt.Tx) error {
+		bucket := t.Bucket(bucketFakeip)
+		if bucket == nil {
+			return nil
+		}
+		return t.DeleteBucket(bucketFakeip)
+	})
+	return err
 }
 
 func (c *CacheFile) Close() error {

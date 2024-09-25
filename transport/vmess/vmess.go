@@ -2,11 +2,13 @@ package vmess
 
 import (
 	"fmt"
-	"math/rand"
 	"net"
 	"runtime"
 
-	"github.com/gofrs/uuid"
+	"github.com/metacubex/mihomo/common/utils"
+
+	"github.com/gofrs/uuid/v5"
+	"github.com/metacubex/randv2"
 )
 
 // Version of vmess
@@ -76,13 +78,13 @@ type Config struct {
 
 // StreamConn return a Conn with net.Conn and DstAddr
 func (c *Client) StreamConn(conn net.Conn, dst *DstAddr) (net.Conn, error) {
-	r := rand.Intn(len(c.user))
+	r := randv2.IntN(len(c.user))
 	return newConn(conn, c.user[r], dst, c.security, c.isAead)
 }
 
 // NewClient return Client instance
 func NewClient(config Config) (*Client, error) {
-	uid, err := uuid.FromString(config.UUID)
+	uid, err := utils.UUIDMap(config.UUID)
 	if err != nil {
 		return nil, err
 	}

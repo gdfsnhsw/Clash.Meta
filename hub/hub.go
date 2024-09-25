@@ -1,32 +1,69 @@
 package hub
 
 import (
-	"github.com/Dreamacro/clash/config"
-	"github.com/Dreamacro/clash/hub/executor"
-	"github.com/Dreamacro/clash/hub/route"
+	"strings"
+
+	"github.com/metacubex/mihomo/config"
+	"github.com/metacubex/mihomo/constant/features"
+	"github.com/metacubex/mihomo/hub/executor"
+	"github.com/metacubex/mihomo/hub/route"
+	"github.com/metacubex/mihomo/log"
 )
 
 type Option func(*config.Config)
 
 func WithExternalUI(externalUI string) Option {
 	return func(cfg *config.Config) {
-		cfg.General.ExternalUI = externalUI
+		cfg.Controller.ExternalUI = externalUI
 	}
 }
 
 func WithExternalController(externalController string) Option {
 	return func(cfg *config.Config) {
-		cfg.General.ExternalController = externalController
+		cfg.Controller.ExternalController = externalController
+	}
+}
+
+func WithExternalControllerUnix(externalControllerUnix string) Option {
+	return func(cfg *config.Config) {
+		cfg.Controller.ExternalControllerUnix = externalControllerUnix
 	}
 }
 
 func WithSecret(secret string) Option {
 	return func(cfg *config.Config) {
-		cfg.General.Secret = secret
+		cfg.Controller.Secret = secret
 	}
 }
 
-// Parse call at the beginning of clash
+// ApplyConfig dispatch configure to all parts include ExternalController
+func ApplyConfig(cfg *config.Config) {
+	applyRoute(cfg)
+	executor.ApplyConfig(cfg, true)
+}
+
+func applyRoute(cfg *config.Config) {
+	if features.CMFA && strings.HasSuffix(cfg.Controller.ExternalUI, ":0") {
+		// CMFA have set its default override value to end with ":0" for security.
+		// so we direct return at here
+		return
+	}
+	if cfg.Controller.ExternalUI != "" {
+		route.SetUIPath(cfg.Controller.ExternalUI)
+	}
+	route.ReCreateServer(&route.Config{
+		Addr:        cfg.Controller.ExternalController,
+		TLSAddr:     cfg.Controller.ExternalControllerTLS,
+		UnixAddr:    cfg.Controller.ExternalControllerUnix,
+		Secret:      cfg.Controller.Secret,
+		Certificate: cfg.TLS.Certificate,
+		PrivateKey:  cfg.TLS.PrivateKey,
+		DohServer:   cfg.Controller.ExternalDohServer,
+		IsDebug:     cfg.General.LogLevel == log.DEBUG,
+	})
+}
+
+// Parse call at the beginning of mihomo
 func Parse(options ...Option) error {
 	cfg, err := executor.Parse()
 	if err != nil {
@@ -37,18 +74,6 @@ func Parse(options ...Option) error {
 		option(cfg)
 	}
 
-	if cfg.General.ExternalUI != "" {
-		route.SetUIPath(cfg.General.ExternalUI)
-	}
-
-	if cfg.General.ExternalController != "" {
-		go route.Start(cfg.General.ExternalController, cfg.General.Secret)
-	}
-
-	executor.ApplyConfig(cfg, true)
+	ApplyConfig(cfg)
 	return nil
-}
-
-func CleanUp() {
-	executor.CleanUp()
 }
